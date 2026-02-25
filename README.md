@@ -1,285 +1,137 @@
-# Drone-detection Framework based on Digital Signal Processing methods (results)
+# Lightweight CNN-based Drone Detection Framework in Low-SNR RF Environments
  
-> **Disclaimer**  
-> This repository contains only publicly shareable materials because the associated paper is currently under submission.  
+> **First and Foremost** > This repository contains only publicly shareable materials and code snippets because the associated research paper is currently under submission.  
 > Therefore, we provide:
-> - Public / synthetic data only  
-> - Outputs and demonstrations  
-> - Input data (mathematical-based generated)
+> - Public / hybrid dataset structures  
+> - Model architecture configurations and pre-trained weights (Phase 1)  
+> - Outputs, evaluation metrics, and demonstrations
 
-Authors: 
+**Authors:** 
+- Dong Nguyen Khanh Duy - Computer Engineering - K23 HCMUT
+- Tran Tan Hai - Computer Engineering - K23 HCMUT
 
-- Le Thanh Binh - Computer Engineering - K23 HCMUT
-- Pham Minh Nhat - Computer Engineering - K23 HCMUT
+**Advisor:** Vo Tuan Binh
 
-Note:
-
-- Our respitory (will be made public after our paper got accepted): https://github.com/Mouse2204/MicroDoppler
-- You can find filtered spectrograms, mathematic and summary reports in each /output folder.
-- You can find input data (raw numbers) in /simulate_data folder
+**Note:**
+- Our repository (will be made fully public after our paper is accepted): https://github.com/Mouse2204/MicroDoppler
+- You can find the model configuration (including SiLU and Focal Loss implementations) in the `/models` folder.
+- Evaluation metrics across different SNR levels are located in the `/output` folder.
 
 ---
 
 ## 1. Overview
 
-This project implements a **multi-layered radar anti-spoofing framework** designed to distinguish:
+![RF signal spectrogram showing drone and Wi-Fi interference](path/to/your/spectrogram_image.png)
 
-- Genuine airborne targets (real drones, helicopters)  
-- Deceptive targets (fake drones, spectral camouflage)
+This project implements a **Data-Driven RF Drone Detection Framework** designed to distinguish:
+- Genuine Unmanned Aerial Vehicles (UAVs) based on RF control signals (AR, Bebop, Phantom).
+- Real-world Background RF activities (Wi-Fi, Bluetooth, ambient noise).
 
-The system is motivated by a critical limitation of many modern detection methods:
-
-Instead of depending purely on pattern recognition, this framework evaluates whether an observed signal is **consistent with physical rotor dynamics**.
+The system is motivated by the critical limitation of traditional detection methods: performance degradation in ultra-low Signal-to-Noise Ratio (SNR) environments. Instead of relying on heavy mathematical filters that might erase weak drone signals, this framework utilizes a **Lightweight Convolutional Neural Network (CNN)** optimized for Edge AI, trained to "see through" real-world RF interference.
 
 ---
 
 ## 2. Problem Motivation
 
-Traditional UAV detection techniques often rely on:
+Traditional UAV detection techniques using RF signals often rely on:
+- Ideal White Gaussian Noise (AWGN) assumptions.
+- Heavy deep learning backbones (ResNet, VGG) that are not suitable for embedded deployment.
+- Hard DSP filtering (like CFAR) which can accidentally suppress weak drone signals at low SNRs.
 
-- Radar Cross Section (RCS)
-- Acoustic signatures
-- Machine learning classification
-
-However:
-
-- Small drones, birds, and spoofed targets can exhibit overlapping features  
-- Deep learning models may accept signals that look correct but are **physically impossible**
-
-Recent advances in **micro-Doppler deception** show that attackers can generate signals that mimic drone-like spectra.
+However, in real-world scenarios:
+- Background noise consists of bursty interference (Wi-Fi, Bluetooth) rather than smooth mathematical noise.
+- Deep learning models tend to suffer from "Catastrophic Forgetting" or "Noise Memorization," where the AI learns to identify the background interference instead of the actual drone signature.
 
 This raises an important question:
-
-> Can we verify not just “how a signal looks”, but “whether it obeys real-world physics”?
+> *How can we design an edge-friendly AI model that learns the intrinsic physical features of a drone's RF signature without memorizing the surrounding real-world noise?*
 
 ---
 
 ## 3. Core Principle
 
-Real rotor systems obey strict constraints:
+To address these challenges, our framework treats drone detection as a **Robust Feature Extraction problem under Extreme Interference**. 
 
-- Harmonic structure from periodic blade motion  
-- Smooth temporal evolution due to inertia  
-- Coherent geometric patterns in the spectrogram  
-- Phase consistency across harmonics  
-
-Spoofed signals may imitate parts of this behavior, but usually fail to satisfy **all constraints simultaneously**.
-
-The framework therefore treats detection as a **physical consistency verification problem** rather than a purely statistical classification task.
+Real drone signals (Frequency Hopping, OFDM) leave specific spatial patterns on a spectrogram. By employing **Curriculum Learning** and injecting **Real RF Background Noise**, we force the CNN to discard useless background patterns (Information Gain = 0) and focus strictly on the microscopic ridges of the drone's RF signature. 
 
 ---
 
 ## 4. Pipeline Architecture
 
-The proposed system consists of five sequential stages:
+The proposed system consists of four sequential stages:
 
-1. **Multi-Order Short-time Fractial Fourier Transform (STFRFT) Analysis**  
-2. **CFAR Detection & Time–Frequency Mode Decomposition**  
-3. **Hodge–Helmholtz Decomposition (HTS)**  
-4. **Physics-Informed Spline Optimization**  
-5. **Phase Coherence Verification**
-
-Each stage validates a different physical or structural property of the signal.
+1. **RF to Spectrogram Transformation** 2. **Hybrid Dataset Generation (Alpha Blending)** 3. **Edge-Optimized Lightweight CNN Configuration** 4. **Two-Phase Curriculum Learning (Hybrid Training)** Each stage is engineered to maximize robustness at low SNRs (-15 dB) while maintaining a minimal computational footprint.
 
 ---
 
 ## 5. Stage Descriptions
 
-### Stage 1 – Multi-Order STFRFT
+### Stage 1 – RF to Spectrogram Transformation
+Raw 1D RF signals are highly volatile. 
+- We utilize Short-Time Fourier Transform (STFT) to convert 1D signals into 2D time-frequency spectrograms.
+- Power is converted to the dB scale to highlight microscopic frequency ridges.
+- Result: A grayscale 2D image optimized as input for spatial feature extraction.
 
-Rotor-induced micro-Doppler signatures are highly non-stationary and resemble **chirp-like components**.
+### Stage 2 – Hybrid Dataset Generation
+Instead of using synthetic AWGN, we utilize actual RF Background activities.
+- **Alpha Blending:** Drone signals are mixed with real Wi-Fi/Bluetooth noise across a wide SNR range (-18 dB to +11 dB).
+- **Hard-example mining:** We ensure the dataset accurately reflects real-world overlapping interference, making the detection task significantly harder but highly realistic.
 
-Limitations of Short-time Fourier Transform (STFT):
-- Fixed resolution
-- Energy spreading
-- Poor concentration for rapidly varying signals
+### Stage 3 – Edge-Optimized Lightweight CNN
 
-Solution:
-- STFRFT rotates the time–frequency plane
-- Aligns with chirp trajectories
-- Produces sharper, high-contrast spectral ridges
+![Lightweight Convolutional Neural Network architecture](path/to/your/cnn_architecture_image.png)
 
-Why multi-order?
-- Real rotor systems contain multiple components
-- A single fractional order may not optimally align all structures
-- Multi-order analysis prevents loss of information
+We designed a custom CNN from scratch, avoiding heavy backbones.
+- **Architecture:** 4 consecutive blocks of `Conv2D -> BatchNorm2d -> SiLU -> MaxPool2d`.
+- **SiLU Activation:** Replaces traditional LeakyReLU to provide smooth non-monotonicity, preventing "dying neurons" and improving gradient flow at low SNRs.
+- **Focal Loss:** Replaces Cross-Entropy to dynamically scale down the penalty for easily classified high-SNR samples and aggressively focus the model on hard-to-detect low-SNR samples.
+- **Complexity:** Sub-1M parameters, making it highly suitable for Edge/Embedded devices (Jetson Nano, Raspberry Pi).
 
-Result:
-- Improved detectability
-- Enhanced robustness to masking and noise
-
----
-
-### Stage 2 – CFAR Detection & Mode Extraction
-
-After STFRFT, the spectrogram is normalized using **CFAR (Constant False Alarm Rate)**.
-
-Purpose:
-- Adaptive thresholding based on local noise estimates
-- Stable false alarm behavior across varying SNR
-- Suppression of background clutter
-
-Following detection:
-- Time–Frequency Mode Decomposition (TFMD) extracts dominant ridges
-- Enables estimation of rotor parameters (e.g., periodicity, RPM)
-
-Result:
-- Clean structural representation
-- Reduction of noise-induced artifacts
+### Stage 4 – Two-Phase Curriculum Learning
+To prevent the CNN from memorizing noise or suffering from catastrophic forgetting, we implement a strategic training loop:
+- **Phase 1 (Warm-up):** The model is trained purely on high-SNR and clean drone signals to learn the core spatial representation of the UAVs.
+- **Phase 2 (Robust Fine-tuning):** The model weights are transferred and trained on a Multi-SNR Hybrid Dataset. Crucially, **Pure Noise samples (Class 0)** are mixed into every batch. This forces the model to mathematically cancel out Wi-Fi/Bluetooth features and focus only on the drone.
 
 ---
 
-### Stage 3 – Hodge–Helmholtz Decomposition (HTS)
+## 6. Dataset
 
-Instead of treating the spectrogram as a simple image, it is interpreted as a **2D field**.
-
-Hodge–Helmholtz Decomposition separates:
-
-- Gradient-like components (irregular variations)
-- Rotational/curl components (cyclic structures)
-- Harmonic residuals
-
-Physical interpretation:
-
-- Genuine rotor motion → strong rotational topology
-- Spoofed overlays → increased gradient irregularities
-
-**Hodge Trust Score (HTS):**
-
-- Measures dominance of rotational energy
-- High HTS → coherent rotor-like topology
-- Low HTS → structural inconsistency
-
-Result:
-- Geometric validation of rotor dynamics
+This repository utilizes an extended version of the publicly available DroneRF dataset.
+- **Total Samples:** > 45,000 hybrid spectrogram images.
+- **Class 1 (Drone):** Mixed Drone signals at various SNRs.
+- **Class 0 (Pure Noise):** Clean noise and Real RF background activities.
+- **Split:** 80% Train / 20% Validation (Stratified).
 
 ---
 
-### Stage 4 – Physics-Informed Spline Optimization
+## 7. Experimental Performance (Summary)
 
-Extracted frequency trajectories must obey **mechanical inertia constraints**.
+Our lightweight framework demonstrates State-of-the-Art robustness against real RF interference:
+- **Max Validation Accuracy:** ~89.27% across the entire hybrid dataset.
+- **High-SNR Performance (0 dB to +10 dB):** > 91% to 95%.
+- **Low-SNR Performance (-15 dB):** Maintains ~79.07% accuracy, significantly outperforming random guessing in an environment where the signal is virtually invisible to the human eye.
 
-Real rotor behavior:
-- Smooth velocity
-- Bounded acceleration
-- No abrupt discontinuities
-
-Spline optimization:
-- Penalizes excessive curvature
-- Suppresses non-physical jumps
-- Enforces dynamically feasible motion
-
-Result:
-- Rejects trajectories inconsistent with real-world rotor mechanics
+By utilizing Real RF noise instead of AWGN, our model promises far fewer false positives in actual deployment scenarios.
 
 ---
 
-### Stage 5 – Phase Coherence Verification
-
-Rotor harmonics originate from a **single physical rotation source**.
-
-Requirement:
-- Harmonics must remain phase-locked
-
-Spoofed mixtures:
-- Combine independent sources
-- Break harmonic phase relationships
-
-Phase coherence analysis:
-- Evaluates stability of harmonic phase differences
-- Detects hidden inconsistencies invisible in magnitude-only spectra
-
-Result:
-- Physics-based authentication layer
-
----
-
-## 6. Why This Multi-Layer Approach Works
-
-Each stage validates an independent constraint:
-
-| Stage | Constraint Type |
-|------|----------------|
-| STFRFT | Chirp / spectral alignment |
-| CFAR + TFMD | Statistical significance / structure |
-| HHD (HTS) | Geometric rotational topology |
-| Spline | Dynamic / inertia consistency |
-| Phase | Harmonic coherence |
-
-For a spoofed signal to succeed, it must simultaneously satisfy:
-
-- Spectral plausibility  
-- Geometric consistency  
-- Dynamic feasibility  
-- Phase coherence  
-
-In practice, this requires reproducing **true rotor physics**, not just spectral appearance.
-
----
-
-## 7. Dataset
-
-This repository includes:
-
-- Physics-based synthetic radar echoes  
-- Controlled SNR conditions  
-- Publicly shareable simulation data  
-
-Target categories:
-
-- Real Drone  
-- Helicopter  
-- Fake Drone (composite spoofing)
-
-No proprietary or restricted datasets are used.
-
----
-
-## 8. Experimental Performance (Summary)
-
-Observed results:
-
-- Near-zero false positives on genuine targets  
-- ~99% rejection of fake drones  
-- Overall accuracy ≈ 99.7%
-
-Key rejection indicators for deceptive signals:
-
-- Reduced Hodge Trust Score  
-- Degraded phase coherence  
-- Dynamically inconsistent trajectories  
-
-Additionally, the pipeline provides **interpretable diagnostics**, identifying likely deception mechanisms.
-
----
-
-## 9. Contributions
+## 8. Contributions
 
 This work introduces:
-
-- A physics-constrained UAV anti-spoofing framework  
-- Multi-order STFRFT for adaptive chirp concentration  
-- Geometric validation using Hodge–Helmholtz Decomposition  
-- Dynamics enforcement via spline optimization  
-- Harmonic authentication through phase coherence  
-
-The framework emphasizes **physical interpretability** over black-box decision making.
+- A highly practical Drone Detector validated against **Real Background RF Noise**, moving beyond ideal AWGN assumptions.
+- An **Edge-ready Lightweight CNN** (< 1M params) leveraging SiLU activation and Focal loss for ultra-low latency.
+- A **Two-Phase Hybrid SNR Training Strategy** that acts as a robust defense against AI noise-memorization and catastrophic forgetting.
 
 ---
 
-## 10. Limitations & Future Work
+## 9. Limitations & Future Work
 
-Planned extensions include:
-
-- Adaptive threshold calibration  
-- Validation with real radar hardware  
-- Robustness to advanced DRFM deception  
-- Multi-target and cluttered environments  
+Planned extensions for our research include:
+- Establishing a baseline comparison using mathematical AWGN (following the standard $P_n$ addition formula) for direct cross-evaluation with existing literature.
+- Conducting hardware deployment metrics (measuring exact FLOPs and inference latency in milliseconds) on NVIDIA Jetson or similar embedded boards.
 
 ---
 
-## 11. Citation
+## 10. Citation
 
 If referencing this work, please cite the associated paper  
 (currently under submission).
-
